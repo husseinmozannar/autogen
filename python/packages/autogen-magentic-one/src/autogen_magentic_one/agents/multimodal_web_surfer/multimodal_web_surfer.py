@@ -5,6 +5,7 @@ import json
 import logging
 import os
 import pathlib
+import time
 import re
 import traceback
 from typing import Any, BinaryIO, Dict, List, Optional, Tuple, Union, cast  # Any, Callable, Dict, List, Literal, Tuple
@@ -175,14 +176,15 @@ class MultimodalWebSurfer(BaseWorker):
 
         if not os.path.isdir(self.debug_dir):
             os.mkdir(self.debug_dir)
-
-        debug_html = os.path.join(self.debug_dir, "screenshot.html")
+        current_timestamp = "_" + int(time.time()).__str__()
+        screenshot_png_name = "screenshot" + current_timestamp + ".png"
+        debug_html = os.path.join(self.debug_dir, "screenshot" + current_timestamp + ".html")
         async with aiofiles.open(debug_html, "wt") as file:
             await file.write(
                 f"""
 <html style="width:100%; margin: 0px; padding: 0px;">
 <body style="width: 100%; margin: 0px; padding: 0px;">
-    <img src="screenshot.png" id="main_image" style="width: 100%; max-width: {VIEWPORT_WIDTH}px; margin: 0px; padding: 0px;">
+    <img src= {screenshot_png_name} id="main_image" style="width: 100%; max-width: {VIEWPORT_WIDTH}px; margin: 0px; padding: 0px;">
     <script language="JavaScript">
 var counter = 0;
 setInterval(function() {{
@@ -194,7 +196,7 @@ setInterval(function() {{
 </html>
 """.strip(),
             )
-        await self._page.screenshot(path=os.path.join(self.debug_dir, "screenshot.png"))
+        await self._page.screenshot(path=os.path.join(self.debug_dir, screenshot_png_name))
         self.logger.info(f"Multimodal Web Surfer debug screens: {pathlib.Path(os.path.abspath(debug_html)).as_uri()}\n")
 
     async def _reset(self, cancellation_token: CancellationToken) -> None:
@@ -203,7 +205,9 @@ setInterval(function() {{
         await future
         await self._visit_page(self.start_page)
         if self.debug_dir:
-            await self._page.screenshot(path=os.path.join(self.debug_dir, "screenshot.png"))
+            current_timestamp = "_" + int(time.time()).__str__()
+            screenshot_png_name = "screenshot" + current_timestamp + ".png"
+            await self._page.screenshot(path=os.path.join(self.debug_dir, screenshot_png_name))
         self.logger.info(
             WebSurferEvent(
                 source=self.metadata["type"],
@@ -395,7 +399,9 @@ setInterval(function() {{
 
         new_screenshot = await self._page.screenshot()
         if self.debug_dir:
-            async with aiofiles.open(os.path.join(self.debug_dir, "screenshot.png"), "wb") as file:
+            current_timestamp = "_" + int(time.time()).__str__()
+            screenshot_png_name = "screenshot" + current_timestamp + ".png"
+            async with aiofiles.open(os.path.join(self.debug_dir, screenshot_png_name), "wb") as file:
                 await file.write(new_screenshot)
 
         ocr_text = (
@@ -436,7 +442,9 @@ setInterval(function() {{
         som_screenshot, visible_rects, rects_above, rects_below = add_set_of_mark(screenshot, rects)
 
         if self.debug_dir:
-            som_screenshot.save(os.path.join(self.debug_dir, "screenshot.png"))
+            current_timestamp = "_" + int(time.time()).__str__()
+            screenshot_png_name = "screenshot_som" + current_timestamp + ".png"
+            som_screenshot.save(os.path.join(self.debug_dir, screenshot_png_name))
 
         # What tools are available?
         tools = [

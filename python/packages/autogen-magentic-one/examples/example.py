@@ -3,6 +3,7 @@
 import asyncio
 import logging
 import os
+import argparse
 
 from autogen_core.application import SingleThreadedAgentRuntime
 from autogen_core.application.logging import EVENT_LOGGER_NAME
@@ -28,14 +29,14 @@ async def confirm_code(code: CodeBlock) -> bool:
     return response.lower() == "yes"
 
 
-async def main() -> None:
+async def main(debug_dir: str) -> None:
     # Create the runtime.
     runtime = SingleThreadedAgentRuntime()
 
     # Create an appropriate client
     client = create_completion_client_from_env(model="gpt-4o")
 
-    async with DockerCommandLineCodeExecutor() as code_executor:
+    async with DockerCommandLineCodeExecutor(work_dir=debug_dir) as code_executor:
         # Register agents.
         await Coder.register(runtime, "Coder", lambda: Coder(model_client=client))
         coder = AgentProxy(AgentId("Coder", "default"), runtime)
@@ -83,6 +84,7 @@ async def main() -> None:
             start_page="https://www.bing.com",
             browser_channel="chromium",
             headless=True,
+            debug_dir=debug_dir,
         )
 
         await runtime.send_message(RequestReplyMessage(), user_proxy.id)
@@ -90,8 +92,13 @@ async def main() -> None:
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Run MagneticOne example with debug directory.")
+    parser.add_argument("--debug_dir", type=str, default=os.getcwd(), help="Directory for debug files and downloads")
+    if not os.path.exists(parser.parse_args().debug_dir):
+        os.makedirs(parser.parse_args().debug_dir)
+    args = parser.parse_args()
     logger = logging.getLogger(EVENT_LOGGER_NAME)
     logger.setLevel(logging.INFO)
-    log_handler = LogHandler()
+    log_handler = LogHandler(filename=os.path.join(args.debug_dir, "log.jsonl"))
     logger.handlers = [log_handler]
-    asyncio.run(main())
+    asyncio.run(main(args.debug_dir))
