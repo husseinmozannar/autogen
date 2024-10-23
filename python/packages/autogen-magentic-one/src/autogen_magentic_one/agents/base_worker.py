@@ -7,7 +7,7 @@ from autogen_core.components.models import (
     UserMessage,
 )
 
-from autogen_magentic_one.messages import (
+from ..messages import (
     BroadcastMessage,
     RequestReplyMessage,
     ResetMessage,
